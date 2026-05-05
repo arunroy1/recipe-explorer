@@ -11,6 +11,9 @@ dotenv.config();
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Behind Render (and other proxies); keeps sessions / HTTPS behavior correct
+app.set('trust proxy', 1);
+
 // ensure uploads folder exists
 const uploadDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -34,7 +37,10 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 }
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24,
+    secure: process.env.NODE_ENV === 'production'
+  }
 }));
 
 app.use(express.json());
