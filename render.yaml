@@ -1,27 +1,14 @@
-# Render Blueprint — https://render.com/docs/blueprint-spec
-# After push: Dashboard → New → Blueprint → connect repo → deploy.
-# Set secret env vars in the Render dashboard (Environment) where sync: false.
-
 services:
   - type: web
-    name: group-g
-    runtime: node
+    name: recipe-explorer
+    env: node
     plan: free
-    region: oregon
     buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: MONGODB_URI
-        sync: false
       - key: SESSION_SECRET
-        sync: false
-      - key: AWS_REGION
-        sync: false
-      - key: AWS_ACCESS_KEY_ID
-        sync: false
-      - key: AWS_SECRET_ACCESS_KEY
-        sync: false
-      - key: S3_BUCKET
+        generateValue: true
+      - key: MONGODB_URI
         sync: false

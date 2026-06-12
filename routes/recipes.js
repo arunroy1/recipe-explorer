@@ -18,15 +18,39 @@ const s3 = new S3({
 // Sanity check: must print your bucket name (or 'undefined')
 console.log('> S3_BUCKET is:', process.env.S3_BUCKET);
 
+// Use S3 when configured, otherwise fall back to local disk storage so the
+// app runs in local development without AWS credentials.
+const storage = process.env.S3_BUCKET
+  ? multerS3({
+      s3,
+      bucket: process.env.S3_BUCKET,
+      key(req, file, cb) {
+        const filename = `recipes/${Date.now()}_${file.originalname}`;
+        cb(null, filename);
+      }
+    })
+  : (() => {
+      const path = require('path');
+      const uploadDir = path.join(__dirname, '..', 'public', 'uploads');
+      const diskStorage = multer.diskStorage({
+        destination: (req, file, cb) => cb(null, uploadDir),
+        filename: (req, file, cb) =>
+          cb(null, `${Date.now()}_${file.originalname}`)
+      });
+      // Expose a public URL on req.file.location to match the multer-s3 shape.
+      const wrapped = Object.create(diskStorage);
+      wrapped._handleFile = (req, file, cb) => {
+        diskStorage._handleFile(req, file, (err, info) => {
+          if (err) return cb(err);
+          info.location = `/uploads/${info.filename}`;
+          cb(null, info);
+        });
+      };
+      return wrapped;
+    })();
+
 const upload = multer({
-  storage: multerS3({
-    s3,
-    bucket: process.env.S3_BUCKET,  
-    key(req, file, cb) {
-      const filename = `recipes/${Date.now()}_${file.originalname}`;
-      cb(null, filename);
-    }
-  }),
+  storage,
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB max file size
 });
 
